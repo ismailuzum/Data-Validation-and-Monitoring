@@ -1,0 +1,226 @@
+📘 Module 8 – Data Quality & Monitoring (Week 12)
+
+This page is the handbook for Week 12 – Data Quality & Monitoring in the Data Engineering & Analytics module. 
+🎯 Learning Objectives
+By the end of this week you will be able to:
+Explain the data quality lifecycle and where checks belong in a modern Medallion architecture.
+Implement data validation with:
+Great Expectations (GX) on Spark data (Microsoft Fabric + Amazon Sales dataset).
+Pydantic for config and row‑level validation in Python.
+Describe data observability and when to use tools like Monte Carlo and Datadog.
+Apply logging & error handling patterns in data pipelines.
+Add CI/CD around data pipelines using GitHub Actions or Jenkins, including automated GE checkpoints.
+Use Collibra DDQ for profiling and business‑level data quality and send results to Slack.
+
+🧭 How This Week Is Structured
+Concepts first – Data quality vs. observability vs. monitoring.
+Tool deep dives – GX, Pydantic, Monte Carlo, Datadog, Collibra DDQ, GitHub Actions, Jenkins.
+Architectures & diagrams – Where each tool fits in the stack.
+Fabric hands‑on – Great Expectations on the Amazon Sale Report CSV in Microsoft Fabric.
+Practice & assignments – Step‑by‑step labs you can reuse in your own projects.
+
+1. Big Picture: Data Quality & Observability
+1.1 Data Quality vs. Data Observability
+Data Quality (DQ): Are the values correct, complete, consistent, and fit for purpose?
+Examples: no null IDs, valid email format, totals match source system.
+Data Observability: Can we see when something breaks in the data or pipelines in real time?
+Focus on freshness, volume, schema, distribution, lineage and alerts.
+A healthy platform needs both: - DQ rules (Great Expectations, Collibra DDQ, Pydantic models) - Observability & monitoring (Monte Carlo, Datadog, Slack alerts, dashboards)
+
+
+2. Data Validation
+2.1 Great Expectations (GX)
+Great Expectations is an open‑source framework for declarative data tests. You describe how the data should look, and GX validates your datasets against those expectations.
+
+2.1.1 Core Concepts2.1.2 Typical GX Workflow
+Connect to data (Spark, SQL, pandas, etc.).
+Create an Expectation Suite:
+Start with profiling (auto‑suggested expectations).
+Then refine manually.
+Define a Checkpoint – which suite(s) + what batch.
+Run validations:
+Locally, in a notebook.
+Inside pipeline steps (Fabric, ADF, Airflow, etc.).
+Publish Data Docs and send alerts if validation fails.
+
+2.1.3 Microsoft Fabric Example – Amazon Sales Dataset
+In this step we use Amazon Sale Report.csv stored under Files/ in a Fabric Lakehouse and validate it with GX using Spark.
+
+2.1.4 Building Checkpoints & Data Docs (v3 API sketch)
+
+2.1.5 Great Expectations – Watchlist & Readlist
+📺 Must‑watch (YouTube) - Great Expectations Tutorial playlist – end‑to‑end demos by the GX team:
+https://www.youtube.com/playlist?list=PLYDwWPRvXB8_XOcrGlYLtmFEZywOMnGSS - Great Expectations (GX) for Data Testing – Introduction:
+https://www.youtube.com/watch?v=F3yvXqzkDhU - Implementing Data Quality in Python w/ Great Expectations:
+https://www.youtube.com/watch?v=7Nk0HiiWi_Q
+📚 Must‑read - GX official docs – Getting started & data sources:
+https://docs.greatexpectations.io/ - Datacamp tutorial – step‑by‑step GE guide with examples:
+https://www.datacamp.com/tutorial/great-expectations-tutorial - GE + Spark examples Data Validations with Great Expectations in MS Fabric : 
+https://devblogs.microsoft.com/ise/data-validations-with-great-expectations-in-ms-fabric.
+
+2.2 Pydantic for Schema & Config Validation
+Pydantic is a Python library that uses type hints to validate data. It is ideal for:
+Validating pipeline configuration (paths, thresholds, email lists, etc.).
+Enforcing schemas for JSON payloads, API responses, or intermediate objects.
+Building reliable internal DTOs (Data Transfer Objects) for your data apps.
+We focus on Pydantic v2 style.
+
+
+2.2.1 Pydantic – Watchlist & Readlist
+📺 Must‑watch (YouTube) - Pydantic V2 – Full Course (data validation from basics to advanced):
+https://www.youtube.com/watch?v=7aBRk_JP-qY - Pydantic Tutorial – Solving Python’s Biggest Problem:
+https://www.youtube.com/watch?v=XIdQ6gO3Anc
+📚 Must‑read - Official Pydantic docs – Models & validators:
+https://docs.pydantic.dev/latest/concepts/models/
+https://docs.pydantic.dev/latest/concepts/validators/ - Real Python: Pydantic – Simplifying Data Validation in Python:
+https://realpython.com/python-pydantic/
+
+3. Data Observability
+Data observability tools like Monte Carlo and Datadog help you answer:
+“Is my data pipeline healthy right now and who is impacted if something goes wrong?”
+Key pillars often monitored: - Freshness – How recently was the table updated? - Volume – Did row counts drop/spike unexpectedly? - Schema – Did columns appear/disappear or change type? - Distribution – Are value distributions or null percentages drifting? - Lineage – What upstream change broke this dashboard?
+
+3.1 Monte Carlo
+Monte Carlo is a Data + AI Observability platform that connects to your data warehouses, lakes, ETL tools, and BI dashboards.
+3.1.1 What Monte Carlo Monitors
+Table & column level metrics – freshness, volume, nulls, uniqueness.
+Incident management – automatically opens incidents when anomalies are detected.
+Lineage graphs – which upstream tables feed a broken dashboard.
+Data product SLAs & SLOs – define reliability targets per critical dataset.
+Typical flow for a broken dashboard:
+Volume on gold.sales_monthly suddenly drops by 80%.
+Monte Carlo detects anomaly and creates an incident.
+Incident shows lineage: problem came from silver.amazon_sales.
+Engineer clicks into incident to see:
+Last successful run
+Queries referencing the table
+Related dashboards and owners
+Slack / Teams alert notifies the on‑call data engineer.
+3.1.2 Monte Carlo – Watchlist & Readlist
+📺 Must‑watch (YouTube) - 2025: Monte Carlo Data + AI Observability Platform Demo:
+https://www.youtube.com/watch?v=MmvZY1gTAy4 - Monte Carlo in Action playlist:
+https://www.youtube.com/playlist?list=PLng5WpUR_efH5mSC8Pvtt0c2TsXzggjQr
+📚 Must‑read - Monte Carlo – What is Data + AI Observability?:
+https://www.montecarlodata.com/data-observability-overview/ - Monte Carlo docs – architecture overview:
+https://docs.getmontecarlo.com/docs/architecture - Blog – What Is Data Observability? 5 Key Pillars:
+https://www.montecarlodata.com/blog-what-is-data-observability/
+
+3.2 Datadog for Data Stack Monitoring
+Datadog is a general observability platform that combines metrics, logs, traces, and dashboards.
+In a data platform context you can use Datadog to:
+Collect pipeline metrics: run duration, rows processed, failures.
+Stream structured logs from Fabric notebooks / Spark jobs.
+Create log‑based metrics (e.g. dq_failed_validations).
+Set up alerts when error rates or DQ failures exceed thresholds.
+
+3.2.1 Datadog – Watchlist & Readlist
+📺 Must‑watch (YouTube) - Datadog 101 Course – Tutorial for Beginners:
+https://www.youtube.com/watch?v=Js06FTU3nXo - Datadog Logs – From Zero to Hero playlist:
+https://www.youtube.com/playlist?list=PL88dK3LsYmhKR899aVljTtulE7K6svm9L
+📚 Must‑read - Datadog docs – Log pipelines:
+https://docs.datadoghq.com/logs/log_configuration/pipelines/ - Datadog docs – Logs to metrics:
+https://docs.datadoghq.com/logs/log_configuration/logs_to_metrics/ - Datadog architecture blog – log indexing strategies:
+https://www.datadoghq.com/architecture/a-guide-to-log-management-indexing-strategies-with-datadog/
+
+4. Logging & Error Handling
+Good logging & error handling turns a mysterious “pipeline failed” into a diagnosable incident.
+4.1 Logging Best Practices
+Use clear log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL.
+Include context in every log:
+pipeline_name, run_id, table, environment.
+Prefer structured logs (JSON) over plain text.
+Correlate logs across services using a correlation ID.
+Never log secrets (access keys, passwords, tokens).
+
+4.2 Error Handling Patterns
+Fail fast on critical DQ failures – stop the pipeline and alert.
+Retry transient errors (network, throttling) with backoff.
+Separate business rule violations from technical errors.
+
+
+5. CI/CD for Data Pipelines
+CI/CD is not just for application code. For data teams it means:
+Automatically testing pipeline code on each change.
+Running data quality checks (Great Expectations, unit tests).
+Packaging and deploying notebooks, SQL objects, dbt models, etc.
+We focus on GitHub Actions and Jenkins.
+
+5.1 GitHub Actions
+GitHub Actions uses YAML workflows stored in .github/workflows/.
+5.1.1 GitHub Actions – Watchlist & Readlist
+📺 Must‑watch (YouTube) - Quick Introduction to CI/CD with GitHub Actions for Data Engineers:
+https://www.youtube.com/watch?v=Qvfe5YbnIvE - GitHub Actions CI/CD pipeline – Step by Step:
+https://www.youtube.com/watch?v=a5qkPEod9ng
+📚 Must‑read - GitHub blog – Keeping your data pipelines healthy with the Great Expectations GitHub Action:
+https://github.blog/enterprise-software/ci-cd/keeping-your-data-pipelines-healthy-with-the-great-expectations-github-action/ - GX blog – Continuous Integration for your data with GitHub Actions:
+https://greatexpectations.io/blog/github-actions/ - DataCamp – CI/CD in Data Engineering (GitHub Actions vs Jenkins):
+https://www.datacamp.com/blog/ci-cd-in-data-engineering
+
+5.2 Jenkins
+Jenkins is a classic, highly flexible CI/CD server used in many enterprises.
+
+5.2.1 Jenkins – Watchlist & Readlist
+📺 Must‑watch (YouTube) - Master Jenkins Pipelines – Step by Step Tutorial for Beginners:
+https://www.youtube.com/watch?v=hgUGblYj-JQ - Complete Jenkins Pipeline Tutorial – Jenkinsfile Explained:
+https://www.youtube.com/watch?v=EzgCoOQvOf0
+📚 Must‑read - Jenkins docs – Pipeline overview:
+https://www.jenkins.io/doc/book/pipeline/ - Jenkins docs – Pipeline examples:
+https://www.jenkins.io/doc/pipeline/examples/
+
+6. Collibra DDQ – Profiling & Quality Controls
+Collibra Data Quality & Observability (DDQ) is a commercial tool that combines profiling, data quality rules, and machine‑learning based anomaly detection.
+Use Collibra DDQ when you need: - Business‑friendly DQ scorecards. - Central governance across many systems. - Tight integration with data catalog and lineage.
+6.1 Typical Workflow
+Connect DDQ to your data source (warehouse, lake, etc.).
+Run an initial data profile:
+distributions, min/max, null counts, outliers.
+Define DQ rules:
+e.g. “Order amount > 0”, “Status in {Shipped, Pending, Cancelled}”.
+Schedule recurring DQ jobs.
+Expose results via scorecards and Slack/Teams notifications.
+6.2 Sending DDQ Results to Slack
+High‑level pattern:
+Configure DDQ to send results to a webhook on fail / threshold breach.
+Create a Slack Incoming Webhook URL.
+Deploy a small middleware (or use DDQ’s native integration if available) that formats the payload for Slack.
+
+6.3 Collibra DDQ – Watchlist & Readlist
+📺 Must‑watch (YouTube) - Collibra Data Quality & Observability – Out‑of‑the‑box Features:
+https://www.youtube.com/watch?v=T-MBwqokhkQ
+📚 Must‑read - Collibra product page – Data Quality & Observability:
+https://www.collibra.com/products/data-quality-and-observability - Blog – The 6 Data Quality Dimensions with Examples:
+https://www.collibra.com/blog/the-6-dimensions-of-data-quality - Collibra DQ intro & use cases:
+https://www.collibra.com/blog/what-is-data-quality
+
+7. Practical Labs (Week 12)
+🧪 Lab 1 – Great Expectations on Amazon Sales (Fabric)
+Goal: Create an end‑to‑end DQ flow around the Amazon Sale Report.csv dataset in Microsoft Fabric.
+Steps: 1. Import Amazon Sale Report.csv into your Fabric Lakehouse Files/ area. 2. Create a Spark notebook and read the CSV into a DataFrame. 3. Initialize Great Expectations and wrap your Spark DataFrame. 4. Add at least 5 expectations, including: - non‑null primary key, - valid ranges for dates and amounts, - allowed set for status, state, or category. 5. Run validation and analyze failures. 6. (Optional) Create a Checkpoint and run it via CLI or within CI. 7. Document your tests and results using Data Docs.
+
+🧪 Lab 2 – Pydantic for Config & Schema
+Goal: Use Pydantic to validate your pipeline configuration and sample records.
+Steps: 1. Design a PipelineConfig model similar to the example above. 2. Store config in config.yaml or config.json and load it in Python. 3. Validate the config with Pydantic and purposely break one field to see errors. 4. Create a Order model and validate a sample of rows from the Amazon dataset.
+
+🧪 Lab 3 – CI/CD with GitHub Actions or Jenkins
+Goal: Run Great Expectations automatically on every push.
+Steps: 1. Put your GX configuration and notebook/script in a GitHub repo. 2. Choose either: - GitHub Actions → add the YAML workflow from section 5.1, or - Jenkins → set up a multibranch pipeline with the Jenkinsfile from 5.2. 3. Break an expectation (e.g. change threshold) to force a failure. 4. Confirm that the pipeline turns red and blocks deployment when DQ fails.
+
+🧪 Lab 4 – Collibra DDQ + Slack (Conceptual / Optional)
+If you have access to Collibra:
+Configure a DDQ connection to a table that mirrors amazon_sales_gold.
+Run profiling and create a basic DQ scorecard.
+Configure a Slack or email notification when score < 90.
+If you do not have Collibra access: design the workflow on paper or in a drawing tool using the architecture patterns from this document.
+
+8. Summary & Checklist
+Before you leave Week 12, check that you can:
+Explain the difference between data quality, data observability, and monitoring.
+Describe where Great Expectations, Pydantic, Monte Carlo, Datadog, and Collibra DDQ fit into a modern data stack.
+Implement a basic GX validation on a Spark DataFrame in Microsoft Fabric.
+Use Pydantic models to validate pipeline config and critical entities.
+Design logs and error handling that make incidents easy to debug.
+Set up a simple CI/CD workflow (GitHub Actions or Jenkins) running GE checkpoints.
+Outline how Collibra DDQ could be used to create business‑level scorecards and Slack alerts.
+If you can tick all of these, you are ready to build reliable, observable data pipelines in real projects.
+
+Good Luck!
