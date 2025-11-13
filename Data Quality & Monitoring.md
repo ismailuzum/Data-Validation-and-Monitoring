@@ -69,8 +69,8 @@ Great Expectations is an open-source framework for declarative data tests. You d
 
   ## **2.1.3 Great Expectations – Watchlist & Readlist**
 
-  ??[Great Expectations (GX) for DATA Testing \- Introduction](https://www.youtube.com/playlist?list=PLYDwWPRvXB8_XOcrGlYLtmFEZywOMnGSS)  
-  ??[Implementing Data Quality in Python w/ Great Expectations](https://www.youtube.com/playlist?list=PLYDwWPRvXB8_XOcrGlYLtmFEZywOMnGSS)
+  📺[Great Expectations (GX) for DATA Testing \- Introduction](https://www.youtube.com/playlist?list=PLYDwWPRvXB8_XOcrGlYLtmFEZywOMnGSS)  
+  📺[Implementing Data Quality in Python w/ Great Expectations](https://www.youtube.com/playlist?list=PLYDwWPRvXB8_XOcrGlYLtmFEZywOMnGSS)
 
   📚GE Official docs – [https://docs.greatexpectations.io/](https://docs.greatexpectations.io/)  
   📚Datacamp tutorial – [https://www.datacamp.com/tutorial/great-expectations-tutorial](https://www.datacamp.com/tutorial/great-expectations-tutorial)  
@@ -102,7 +102,7 @@ Understand the fundamentals of Great Expectations by validating a CSV file local
 
    * `ship_date >= order_date`
 
-   * `country` in allowed set
+   * `country` in the allowed set
 
 5. Run validation.
 
@@ -135,8 +135,8 @@ We focus on **Pydantic v2**.
 
 ## **2.2.1 Pydantic – Watchlist & Readlist**
 
-??[Pydantic V2 - Full Course - Learn the BEST Library for Data Validation and Parsing](https://youtu.be/7aBRk_JP-qY)  
-??[Pydantic Tutorial • Solving Python's Biggest Problem](https://youtu.be/XIdQ6gO3Anc)
+📺[Pydantic V2 - Full Course - Learn the BEST Library for Data Validation and Parsing](https://youtu.be/7aBRk_JP-qY)  
+📺[Pydantic Tutorial • Solving Python's Biggest Problem](https://youtu.be/XIdQ6gO3Anc)
 
 📚Pydantic Models – [https://docs.pydantic.dev/latest/concepts/models/](https://docs.pydantic.dev/latest/concepts/models/)  
 📚Validators – [https://docs.pydantic.dev/latest/concepts/validators/](https://docs.pydantic.dev/latest/concepts/validators/)
@@ -158,7 +158,7 @@ Use Pydantic models to validate rows and pipeline configuration.
    * `quantity > 0`
 
    * `price >= 0`  
-   *   
+       
    * etc.
 
 2. Load CSV and validate each row.
@@ -287,7 +287,7 @@ GitHub Actions uses YAML workflows stored in `.github/workflows/`.
 ## **4.1.1 Watchlist & Readlist**
 
 📺 [GitHub Actions Tutorial - Basic Concepts and CI/CD Pipeline with Docker](https://youtu.be/R8_veQiYBjI?si=CDcxTTH4CM1qloK3)  
- ??[GitHub Actions CI/CD pipeline | Step by Step guide](https://youtu.be/a5qkPEod9ng?si=t3s5FpLeiLqRLiOF)
+📺 [GitHub Actions CI/CD pipeline | Step by Step guide](https://youtu.be/a5qkPEod9ng?si=t3s5FpLeiLqRLiOF)
 
 📚 GitHub blog:  
  [https://github.blog/enterprise-software/ci-cd/keeping-your-data-pipelines-healthy-with-the-great-expectations-github-action/](https://github.blog/enterprise-software/ci-cd/keeping-your-data-pipelines-healthy-with-the-great-expectations-github-action/)
@@ -368,9 +368,9 @@ Send Slack alerts when DQ validation fails.
 
 # **5\. Collibra DDQ – Profiling & Quality Controls** 
 
-**??**[Collibra | Streamline Your Customer Product Sales Data with Collibra | Part - 1](https://www.youtube.com/watch?v=BtKb1uKLH18&list=PLfMV70VIUv4smY3BlLlUs98_PUnxYYD_x)
+**📺**[Collibra | Streamline Your Customer Product Sales Data with Collibra | Part - 1](https://www.youtube.com/watch?v=BtKb1uKLH18&list=PLfMV70VIUv4smY3BlLlUs98_PUnxYYD_x)
 
-**??**[Collibra Data Quality & Observability: Out-of-the-box Features](https://youtu.be/T-MBwqokhkQ?si=KVPRrpKhTp1pvH7q)
+**📺**[Collibra Data Quality & Observability: Out-of-the-box Features](https://youtu.be/T-MBwqokhkQ?si=KVPRrpKhTp1pvH7q)
 
 **📚**https://www.collibra.com/blog/what-is-data-quality
 
