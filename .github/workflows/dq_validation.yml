@@ -1,0 +1,53 @@
+name: Data Quality Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * *"   # every day 07:00 UTC (optional)
+
+jobs:
+  dq-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create Slack config file (runtime only)
+        run: |
+          mkdir -p config
+          echo "{\"webhook_url\": \"${SLACK_WEBHOOK_URL}\"}" > config/slack_webhook.json
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Run Data Quality pipeline
+        id: dq
+        run: |
+          python dq_pipeline_final.py
+        continue-on-error: true
+
+      - name: Upload failed rows (if exists)
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed_rows
+          path: failed_rows.csv
+          if-no-files-found: ignore
+
+      - name: Fail job if pipeline returned non-zero
+        if: steps.dq.outcome == 'failure'
+        run: |
+          echo "DQ pipeline failed. Marking workflow as failed."
+          exit 1
