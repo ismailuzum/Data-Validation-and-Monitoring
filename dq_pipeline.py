@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 # ---------------------------------------------------------
-# 1. Load Dataset with Pandas
+# 1. Load Dataset with Pandas 11
 # ---------------------------------------------------------
 csv_path = Path("data/amazon_orders.csv")
 df = pd.read_csv(csv_path)
