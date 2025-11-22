@@ -2,13 +2,11 @@ name: Data Quality Pipeline
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [ main, master ]
   pull_request:
   workflow_dispatch:
   schedule:
-    - cron: "0 7 * * *"   # every day 07:00 UTC (optional)
+    - cron: "0 7 * * *"
 
 jobs:
   dq-check:
@@ -26,17 +24,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Create Slack config file (runtime only)
-        run: |
-          mkdir -p config
-          echo "{\"webhook_url\": \"${SLACK_WEBHOOK_URL}\"}" > config/slack_webhook.json
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
       - name: Run Data Quality pipeline
         id: dq
-        run: |
-          python dq_pipeline_final.py
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python dq_pipeline_final.py
         continue-on-error: true
 
       - name: Upload failed rows (if exists)
@@ -48,6 +40,4 @@ jobs:
 
       - name: Fail job if pipeline returned non-zero
         if: steps.dq.outcome == 'failure'
-        run: |
-          echo "DQ pipeline failed. Marking workflow as failed."
-          exit 1
+        run: exit 1

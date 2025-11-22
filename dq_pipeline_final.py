@@ -7,20 +7,8 @@ Dual validation data quality pipeline for the Amazon orders dataset:
 - Row-level schema validation with Pydantic
 - Column-level & statistical validation with Great Expectations
 - Save failed rows to failed_rows.csv
-- Send detailed alerts to Slack via webhook
+- Send detailed alerts to Slack via webhook (from ENV variable)
 - Save expectation suite as JSON and YAML for versioning
-
-Expected structure:
-
-project_root/
-│
-├─ data/
-│   └─ amazon_orders.csv
-├─ config/
-│   └─ slack_webhook.json
-├─ expectations/
-│   └─ amazon_suite.json / amazon_suite.yaml (auto-created)
-└─ dq_pipeline_final.py
 """
 
 from __future__ import annotations
@@ -29,6 +17,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
+import os
 
 import pandas as pd
 import requests
@@ -88,22 +77,14 @@ def load_dataframe(csv_path: Path) -> pd.DataFrame:
     return df
 
 
-def load_slack_webhook(config_path: Path) -> str | None:
-    if not config_path.exists():
-        print(f"[WARN] Slack config not found at {config_path}. Slack alerts will be skipped.")
-        return None
-    cfg = json.loads(config_path.read_text(encoding="utf-8"))
-    url = cfg.get("webhook_url")
-    if not url:
-        print("[WARN] 'webhook_url' key not found in slack_webhook.json. Slack alerts will be skipped.")
-        return None
-    return url
-
-
 def slack_send(webhook_url: str | None, payload: Dict[str, Any]) -> None:
+    """
+    Send Slack notification only if webhook URL exists.
+    """
     if not webhook_url:
-        # Slack disabled / not configured
+        print("[INFO] Slack webhook not configured. Skipping Slack alert.")
         return
+
     try:
         resp = requests.post(webhook_url, json=payload, timeout=10)
         if resp.status_code >= 400:
@@ -160,64 +141,39 @@ def build_ge_suite(context: gx.DataContext, suite_name: str) -> gx.ExpectationSu
         suite = context.suites.add(gx.ExpectationSuite(name=suite_name))
         print(f"Created new GE suite: {suite_name}")
 
-    # Clear any existing expectations to avoid duplicates during development
     suite.expectations.clear()
 
-    # Core expectations for the Amazon dataset
-    suite.add_expectation(
-        gx.expectations.ExpectColumnValuesToNotBeNull(column="Order ID")
-    )
-    suite.add_expectation(
-        gx.expectations.ExpectColumnValuesToBeUnique(column="Order ID")
-    )
-    suite.add_expectation(
-        gx.expectations.ExpectColumnValuesToBeBetween(column="Qty", min_value=0)
-    )
-    suite.add_expectation(
-        gx.expectations.ExpectColumnValuesToBeBetween(column="Amount", min_value=0.0)
-    )
-    suite.add_expectation(
-        gx.expectations.ExpectColumnValuesToBeInSet(
-            column="ship-country",
-            value_set=["IN"],
-        )
-    )
+    suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="Order ID"))
+    suite.add_expectation(gx.expectations.ExpectColumnValuesToBeUnique(column="Order ID"))
+    suite.add_expectation(gx.expectations.ExpectColumnValuesToBeBetween(column="Qty", min_value=0))
+    suite.add_expectation(gx.expectations.ExpectColumnValuesToBeBetween(column="Amount", min_value=0))
+    suite.add_expectation(gx.expectations.ExpectColumnValuesToBeInSet(column="ship-country", value_set=["IN"]))
     suite.add_expectation(
         gx.expectations.ExpectColumnValuesToBeInSet(
             column="Status",
-            value_set=[
-                "Shipped",
-                "Cancelled",
-                "Shipped - Delivered to Buyer",
-            ],
+            value_set=["Shipped", "Cancelled", "Shipped - Delivered to Buyer"],
         )
     )
 
     return suite
 
 
-
-
 def run_ge_validation(df: pd.DataFrame, context: gx.DataContext, suite: gx.ExpectationSuite) -> Dict[str, Any]:
-    """
-    Run Great Expectations validation over the DataFrame.
-    """
     datasource = context.data_sources.add_pandas(name="amazon_source")
     data_asset = datasource.add_dataframe_asset(name="amazon_orders_asset")
     batch_definition = data_asset.add_batch_definition_whole_dataframe(name="all_orders")
 
+    print("Running Great Expectations validation...")
     validation_def = gx.ValidationDefinition(
         data=batch_definition,
         suite=suite,
         name="amazon_validation",
     )
 
-    print("Running Great Expectations validation...")
     results = validation_def.run(batch_parameters={"dataframe": df})
     is_success = results["success"]
     print("GE validation success:", is_success)
 
-    # Collect failed expectation metadata
     failed_expectations: List[Dict[str, Any]] = []
     total_expectations = len(results["results"])
 
@@ -236,8 +192,6 @@ def run_ge_validation(df: pd.DataFrame, context: gx.DataContext, suite: gx.Expec
     num_failed = len(failed_expectations)
     failure_rate = round((num_failed / total_expectations) * 100, 4) if total_expectations > 0 else 0.0
 
-    print(f"GE failed expectations: {num_failed} ({failure_rate}%)")
-
     return {
         "success": is_success,
         "results": results,
@@ -249,10 +203,6 @@ def run_ge_validation(df: pd.DataFrame, context: gx.DataContext, suite: gx.Expec
 
 
 def extract_failed_rows(df: pd.DataFrame, ge_result: Dict[str, Any], output_path: Path) -> int:
-    """
-    Use GE's unexpected_index_list to extract failing rows and save to CSV.
-    Returns number of failed rows saved.
-    """
     failed_rows_list: List[pd.DataFrame] = []
 
     for f in ge_result["failed_expectations"]:
@@ -269,12 +219,12 @@ def extract_failed_rows(df: pd.DataFrame, ge_result: Dict[str, Any], output_path
         print(f"Saved failed rows to: {output_path} ({len(final_failed_df)} rows)")
         return len(final_failed_df)
     else:
-        print("No row-level failures to save from GE results.")
+        print("No row-level failures to save.")
         return 0
 
 
 # =========================================================
-# 5. Slack alert composition
+# 5. Slack alert payload builder
 # =========================================================
 
 def build_slack_payload(
@@ -282,6 +232,7 @@ def build_slack_payload(
     ge_result: Dict[str, Any],
     pydantic_result: Dict[str, Any],
 ) -> Dict[str, Any]:
+
     failed_expectations = ge_result["failed_expectations"]
     num_failed = ge_result["num_failed"]
     total_expectations = ge_result["total_expectations"]
@@ -290,26 +241,29 @@ def build_slack_payload(
     pydantic_errors = pydantic_result["num_errors"]
     pydantic_error_rate = pydantic_result["error_rate"]
 
-    if failed_expectations:
-        fail_summary = "\n".join(
+    fail_summary = (
+        "\n".join(
             [
                 f"- *{f['expectation']}* on column `{f['column']}` → "
                 f"`{f['unexpected_percent']}%` unexpected (count={f['unexpected_count']})"
                 for f in failed_expectations
             ]
         )
-    else:
-        fail_summary = "_No failed expectations at GE level._"
+        if failed_expectations
+        else "_No failed expectations._"
+    )
 
-    text_title = ":x: *DATA QUALITY ALERT – Amazon Orders*"
-    if ge_result["success"] and pydantic_errors == 0:
-        text_title = ":white_check_mark: *DATA QUALITY OK – Amazon Orders*"
+    text_title = (
+        ":white_check_mark: *DATA QUALITY OK – Amazon Orders*"
+        if ge_result["success"] and pydantic_errors == 0
+        else ":x: *DATA QUALITY ALERT – Amazon Orders*"
+    )
 
-    payload: Dict[str, Any] = {
+    return {
         "text": text_title,
         "attachments": [
             {
-                "color": "#ff0000" if not ge_result["success"] or pydantic_errors > 0 else "#36a64f",
+                "color": "#ff0000" if num_failed > 0 or pydantic_errors > 0 else "#36a64f",
                 "title": "Validation Summary",
                 "fields": [
                     {"title": "Total Rows", "value": str(total_rows), "short": True},
@@ -328,60 +282,44 @@ def build_slack_payload(
         ],
     }
 
-    return payload
-
 
 # =========================================================
 # 6. Main pipeline
 # =========================================================
 
 def main() -> None:
-    # ---------- Paths ----------
+
     csv_path = Path("data/amazon_orders.csv")
-    slack_config_path = Path("config/slack_webhook.json")
     expectations_dir = Path("expectations")
     failed_rows_path = Path("failed_rows.csv")
 
-    # ---------- Load data ----------
+    # Load data
     df = load_dataframe(csv_path)
     total_rows = len(df)
 
-    # ---------- Pydantic validation ----------
+    # Pydantic validation
     pydantic_result = run_pydantic_validation(df)
 
-    # ---------- GE context & suite ----------
+    # GE suite + context
     context = gx.get_context()
     suite_name = "amazon_orders_suite"
     suite = build_ge_suite(context, suite_name)
-    
 
-    # ---------- GE validation ----------
+    # GE validation
     ge_result = run_ge_validation(df, context, suite)
 
-    # ---------- Extract failed rows ----------
-    failed_row_count = extract_failed_rows(df, ge_result, failed_rows_path)
+    # Save failed rows
+    extract_failed_rows(df, ge_result, failed_rows_path)
 
-    # ---------- Slack alert ----------
-    webhook_url = load_slack_webhook(slack_config_path)
+    # Slack payload
+    webhook_url = os.getenv("SLACK_WEBHOOK_URL")
     payload = build_slack_payload(total_rows, ge_result, pydantic_result)
     slack_send(webhook_url, payload)
-    print("Slack summary alert sent (if webhook configured).")
-
-    # Additional critical alert if GE failure rate too high
-    if ge_result["failure_rate"] > 5 or pydantic_result["error_rate"] > 1:
-        critical_text = (
-            f":rotating_light: *CRITICAL DQ ALERT* – "
-            f"GE failure rate {ge_result['failure_rate']}%, "
-            f"Pydantic error rate {pydantic_result['error_rate']}%"
-        )
-        slack_send(webhook_url, {"text": critical_text})
-        print("Critical Slack alert sent (threshold exceeded).")
 
     print("\n--- Pipeline finished ---")
     print(f"Total rows: {total_rows}")
     print(f"Pydantic errors: {pydantic_result['num_errors']}")
     print(f"GE failed expectations: {ge_result['num_failed']}")
-    print(f"Failed rows saved by GE: {failed_row_count}")
 
 
 if __name__ == "__main__":
