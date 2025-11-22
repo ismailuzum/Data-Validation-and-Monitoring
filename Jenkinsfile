@@ -15,8 +15,8 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'pip3 install --upgrade pip'
-                sh 'pip3 install -r requirements.txt'
+                sh 'pip3 install --upgrade pip --break-system-packages'
+                sh 'pip3 install -r requirements.txt --break-system-packages'
             }
         }
 
