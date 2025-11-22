@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.10'
-            args '-u'
-        }
-    }
+    agent any
 
     environment {
         SLACK_WEBHOOK_URL = credentials('slack-webhook-url')
@@ -20,14 +15,14 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'pip install --upgrade pip'
-                sh 'pip install -r requirements.txt'
+                sh 'pip3 install --upgrade pip'
+                sh 'pip3 install -r requirements.txt'
             }
         }
 
         stage('Run Data Validation Pipeline') {
             steps {
-                sh 'python dq_pipeline_final.py'
+                sh 'python3 dq_pipeline_final.py'
             }
         }
 
