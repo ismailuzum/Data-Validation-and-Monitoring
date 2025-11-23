@@ -127,7 +127,7 @@ def run_pydantic_validation(df: pd.DataFrame) -> Dict[str, Any]:
 
 
 # =========================================================
-# 4. Column-level validation with Great Expectations
+# 4. Column-level validation with Great Expectationsasd
 # =========================================================
 
 def build_ge_suite(context: gx.DataContext, suite_name: str) -> gx.ExpectationSuite:
